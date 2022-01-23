@@ -5,11 +5,11 @@
 
 Adafruit_ADS1115 ads1115; // construct an ads1115 at address 0x48
 int pHumedad;
-  int pSalinidad;
-  int pTemperatura;
-  int pLuminidad;
-  const int sleepTimeS = 30;
-  int cont=0;
+ int pSalinidad;
+ int pTemperatura;
+ int pLuminidad;
+ const int sleepTimeS = 30;
+ int cont=0;
 
   
 
@@ -37,115 +37,91 @@ int pHumedad;
 int power_pin = 5; // GPIO 5 se utiliza para alimentar la sonda de salinidad
 
 // ---------------------------------------------------------------------
-// FUNCIONES
+// CLASES
 
-// R --> Salinidad() --> R
-int Salinidad(int16_t posicion){
-  int16_t posicionSalinidad;
-  digitalWrite( power_pin, HIGH );
-  posicionSalinidad = ads1115.readADC_SingleEnded(posicion);
-  digitalWrite(power_pin, LOW);
-  const int SinSal = 200;  // Medimos valor sin sal
-  const int ConSal = 5800;  // Medimos valor con sal
-  bool bloqueoRiego;
-  int16_t salinidad;
-  salinidad = 100 * SinSal / (SinSal - ConSal) - posicionSalinidad * 100 / (SinSal - ConSal);
-  if (salinidad > 100){
-    salinidad = 100;}
-  if (salinidad < 0){
-    salinidad = 0;}
-  return salinidad;
-  }
+class Salinidad(int16_t posicion){
+  private:
+    int16_t posicionSalinidad;
+    const int SinSal = 200;  // Medimos valor sin sal
+    const int ConSal = 5800;  // Medimos valor con sal
+    int16_t salinidad;
+  public:
+    int medir(){
+      digitalWrite( power_pin, HIGH );
+      posicionSalinidad = ads1115.readADC_SingleEnded(posicion);
+      digitalWrite(power_pin, LOW);
+      salinidad = 100 * SinSal / (SinSal - ConSal) - posicionSalinidad * 100 / (SinSal - ConSal);
+      if (salinidad > 100){
+        salinidad = 100;}
+      if (salinidad < 0){
+        salinidad = 0;}
+      return salinidad;
+     }
+}
 
 
 // R --> Humedad() --> R
-int Humedad(int16_t posicion){
-  int16_t posicionHumedad;
-  posicionHumedad = ads1115.readADC_SingleEnded(posicion);
-  const int AirValue = 29000;  // Medimos valor en seco
-  const int WaterValue = 17400;  // Medimos valor en agua
-  bool aspersores;
-  int16_t humedad;
-  humedad = 100 * AirValue / (AirValue - WaterValue) - posicionHumedad * 100 / (AirValue - WaterValue);
-  if (humedad > 100) {
-    humedad = 100;}
-
-  // Este "if" impide que la humedad devuelva un valor negativo
-  if (humedad < 0) {
-    humedad = 0;}
+class Humedad(int16_t posicion){
+  private:
+    int16_t posicionHumedad;
+    posicionHumedad = ads1115.readADC_SingleEnded(posicion);
+    const int AirValue = 29000;  // Medimos valor en seco
+    const int WaterValue = 17400;  // Medimos valor en agua
+    int16_t humedad;
+  public:
+    int medir(){
+      humedad = 100 * AirValue / (AirValue - WaterValue) - posicionHumedad * 100 / (AirValue - WaterValue);
+      if (humedad > 100) {
+        humedad = 100;}
     
- /* if (humedad<80 && aspersores==false){
-    Serial.println("Encendiendo aspersores...");
-    aspersores=true;
-    } else{
-      if (humedad>85 && aspersores==true) {
-        Serial.println("Apagando aspersores...");
-        aspersores=false;}}
-    
-    if (aspersores == true){
-      Serial.println("Aspersores encendidos");
-      } else{
-        Serial.println("Aspersores apagados");}*/
+      // Este "if" impide que la humedad devuelva un valor negativo
+      if (humedad < 0) {
+        humedad = 0;}
         return humedad;
   }
+ }
 
 // R --> Temperatura() --> R
-int Temperatura(int16_t posicion){
-  //bool controlDeTemperatura;
-  //int16_t lecturaTemperatura;
-  double temperatura;
-  //lecturaTemperatura = ads1115.readADC_SingleEnded(posicion);
-  //Serial.print("lecturaTemperatura:");
-  //Serial.println(lecturaTemperatura);
-  //double Vo = lecturaTemperatura * (4.096 / (pow(2, 15) - 1)) ;
-  
-  //temperatura = (Vo - b) / m;
-  
-
-  float tension;// declaracion de variables
-  int adc2;
-  
-  adc2 = (ads1115.readADC_SingleEnded(posicion));// entrada selecionada la 2 comunicanose con nuestra placa
-  tension = (4.096 * adc2) / 32767;// factor de conversión para obtener la tension de salida
-  int desviacion =2.12;
-  double b = 0.786;
-  double m = 0.0347;
-  temperatura = ((tension - b) / m) + desviacion;// algoritmo para obtener la temperatura (recta de calibracion)
-  return temperatura;
-      /*if (temperatura >= 40 && controlDeTemperatura == false ) {
-    Serial.println("Atención, temperaturas elevadas, activa");
-    controlDeTemperatura = true;
+class Temperatura(int16_t posicion){
+  private:
+    double temperatura;
+    double tension;
+    int adc2;
+    const double b = 0.786;
+    const double m = 0.0347;
+    float desviacion;
+  public:
+    int medir(){
+      adc2 = (ads1115.readADC_SingleEnded(posicion));// entrada selecionada la 2 comunicanose con nuestra placa
+      tension = (4.096 * adc2) / 32767;// factor de conversión para obtener la tension de salida
+      desviacion = 2.12;
+      temperatura = ((tension - b) / m) + desviacion;// algoritmo para obtener la temperatura (recta de calibracion)
+      return temperatura;
     }
-    if (temperatura < 7 && controlDeTemperatura == false) {
-      Serial.println("Atención, temperaturas bajas");
-      controlDeTemperatura = true;
-
-    }
-    
-    if (temperatura >= 7 && temperatura < 40) {
-      controlDeTemperatura = false;
-    }*/
   }
 
  // R --> Iluminacion() --> R
-int Iluminacion(int16_t posicion){
-  int16_t cantIluminacion;
-  double Iluminacion;
-  //digitalWrite(power_pin, HIGH );
-  //delay(200);
-  cantIluminacion = ads1115.readADC_SingleEnded(posicion);
-  Iluminacion = cantIluminacion * 100/15000;
-  if(Iluminacion > 100){Iluminacion=100;}
-  if(Iluminacion < 0){Iluminacion=0;}
-  //digitalWrite(power_pin, LOW);
-  return Iluminacion;
+class Iluminacion(int16_t posicion){
+  private:
+    int16_t cantIluminacion;
+    double Iluminacion;
+  public:
+    int medir(){
+      cantIluminacion = ads1115.readADC_SingleEnded(posicion);
+      Iluminacion = cantIluminacion * 100/15000;
+      if(Iluminacion > 100){
+        Iluminacion=100;}
+      if(Iluminacion < 0){
+        Iluminacion=0;}
+      return Iluminacion;
+     }
 }
 
 
 
 // ---------------------------------------------------------------------
 
-// Humedad= 1 Salinidad=2  Temperatura= 0  Luz=3
+
 #include <ESP8266WiFi.h>
 
 // Comentar/Descomentar para ver mensajes de depuracion en monitor serie y/o respuesta del HTTP server
@@ -358,31 +334,30 @@ void setup() {
  }
  
 void loop() {
-  int sal = Salinidad(0);
-  Serial.println(sal);
-  int ilu = Iluminacion(3);
-  Serial.println(ilu);
-  int hum = Humedad(2);
-  Serial.println(hum);
+  // Temperatura= 0  Humedad= 1 Salinidad=2  Luz=3
+  Temperatura sensor0(0);
+  Humedad sensor1(1);
+  Salinidad sensor2(2);
+  Iluminacion sensor3(3);
   connectWiFi();
 String data[4];  // Podemos enviar hasta 8 datos
 
 
-data[ 1 ] = String(sal); //Escribimos el dato 1. Recuerda actualizar numFields
+data[ 1 ] = String(sensor1.medir()); //Escribimos el dato 1. Recuerda actualizar numFields
 #ifdef PRINT_DEBUG_MESSAGES
-    Serial.print( "Random1 = " );
+    Serial.print( "Sensor 1 = " );
     Serial.println( data[ 1 ] );
 #endif
 
-data[2] = String(2); //Escribimos el dato 2. Recuerda actualizar numFields
+data[2] = String(sensor2.medir()); //Escribimos el dato 2. Recuerda actualizar numFields
 #ifdef PRINT_DEBUG_MESSAGES
-    Serial.print( "Iluminacion = " );
+    Serial.print( "Sensor 3 = " );
     Serial.println( data[ 2 ] );
 #endif
 
-data[3] = String(3); //Escribimos el dato 2. Recuerda actualizar numFields
+data[3] = String(sensor3.medir()); //Escribimos el dato 2. Recuerda actualizar numFields
 #ifdef PRINT_DEBUG_MESSAGES
-    Serial.print( "Humedad = " );
+    Serial.print( "S ensor 2 = " );
     Serial.println( data[ 3 ] );
 #endif
 
@@ -402,7 +377,8 @@ HTTPPost( data, NUM_FIELDS_TO_SEND );
   }
   else{
     Serial.println("ESP8266 in sleep mode");
-    ESP.deepSleep(sleepTimeS * 100);
+    ESP.deepSleep(vb  m,.-´´
+   sleepTimeS * 100);
 
 }*/
 }
